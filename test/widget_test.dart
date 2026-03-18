@@ -1,30 +1,56 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:chromapath/main.dart';
+import 'package:chromapath/data/levels.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('All ${allLevels.length} levels have valid solutions', () {
+    expect(allLevels.length, totalLevelCount);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    for (final level in allLevels) {
+      final solution = allSolutions[level.id];
+      expect(solution, isNotNull, reason: 'Level ${level.id} missing solution');
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      final gridSize = level.gridSize;
+      final totalCells = gridSize * gridSize;
+      final allCells = <(int, int)>{};
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      for (final entry in solution!.entries) {
+        final path = entry.value;
+
+        // Path has at least 2 cells
+        expect(path.length, greaterThanOrEqualTo(2),
+            reason: 'Level ${level.id}: path too short');
+
+        // All steps adjacent
+        for (int i = 1; i < path.length; i++) {
+          final prev = path[i - 1];
+          final curr = path[i];
+          final dist =
+              (curr.$1 - prev.$1).abs() + (curr.$2 - prev.$2).abs();
+          expect(dist, 1,
+              reason: 'Level ${level.id}: non-adjacent at $prev->$curr');
+        }
+
+        // All cells in bounds
+        for (final (r, c) in path) {
+          expect(r >= 0 && r < gridSize, true);
+          expect(c >= 0 && c < gridSize, true);
+        }
+
+        // No duplicates within path
+        expect(path.toSet().length, path.length,
+            reason: 'Level ${level.id}: duplicate cells in path');
+
+        // No overlap with other paths
+        for (final cell in path) {
+          expect(allCells.contains(cell), false,
+              reason: 'Level ${level.id}: cell $cell overlaps');
+          allCells.add(cell);
+        }
+      }
+
+      // Total coverage
+      expect(allCells.length, totalCells,
+          reason: 'Level ${level.id}: covers ${allCells.length}/$totalCells');
+    }
   });
 }

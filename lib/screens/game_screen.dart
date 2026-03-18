@@ -58,7 +58,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
 
     // Auto-advance to next level after a short delay
-    if (widget.level.id < 20) {
+    if (widget.level.id < totalLevelCount) {
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _showSolveOverlay) {
           _nextLevel();
@@ -640,7 +640,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(width: 16),
-              if (widget.level.id < 20)
+              if (widget.level.id < totalLevelCount)
                 ElevatedButton.icon(
                   onPressed: _nextLevel,
                   icon: const Icon(Icons.arrow_forward_rounded),
@@ -653,7 +653,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
             ],
           ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
-          if (widget.level.id < 20) ...[
+          if (widget.level.id < totalLevelCount) ...[
             const SizedBox(height: 12),
             Text(
               'Auto-advancing in 3 seconds...',

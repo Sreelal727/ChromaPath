@@ -1,278 +1,106 @@
 // Run with: dart run tool/validate_levels.dart
-// Validates every level's solution covers all cells exactly once.
+// Validates every level's solution covers all cells exactly once,
+// all paths are adjacency-connected, and there are no overlaps.
+
+import '../lib/data/levels.dart';
 
 void main() {
-  // Reproduce the level data inline for validation
-  final levels = <int, _LevelData>{};
-
-  // Level 1 (5x5)
-  levels[1] = _LevelData(5, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3),(1,2)],
-    'B': [(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(3,4),(3,3)],
-    'G': [(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)],
-  });
-
-  // Level 2 (5x5)
-  levels[2] = _LevelData(5, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3),(1,2),(1,1),(1,0)],
-    'B': [(2,0),(2,1),(2,2),(2,3),(2,4)],
-    'G': [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)],
-  });
-
-  // Level 3 (5x5)
-  levels[3] = _LevelData(5, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3)],
-    'B': [(1,2),(1,1),(1,0),(2,0),(2,1),(2,2)],
-    'G': [(2,3),(2,4),(3,4),(3,3),(3,2),(3,1)],
-    'O': [(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)],
-  });
-
-  // Level 4 (5x5)
-  levels[4] = _LevelData(5, {
-    'R': [(0,0),(1,0),(2,0),(3,0),(4,0),(4,1),(3,1)],
-    'B': [(2,1),(1,1),(0,1),(0,2),(1,2),(2,2)],
-    'G': [(0,3),(0,4),(1,4),(1,3),(2,3),(2,4)],
-    'O': [(3,2),(3,3),(3,4),(4,4),(4,3),(4,2)],
-  });
-
-  // Level 5 (5x5)
-  levels[5] = _LevelData(5, {
-    'R': [(0,0),(0,1),(1,1),(1,0),(2,0)],
-    'B': [(0,2),(0,3),(0,4),(1,4),(1,3)],
-    'G': [(1,2),(2,2),(2,1),(3,1),(3,0),(4,0),(4,1)],
-    'O': [(2,3),(2,4),(3,4),(3,3),(3,2)],
-    'P': [(4,2),(4,3),(4,4)],
-  });
-
-  // Level 6 (5x5)
-  levels[6] = _LevelData(5, {
-    'R': [(0,0),(1,0),(2,0),(2,1),(1,1),(0,1)],
-    'B': [(0,2),(0,3),(1,3),(1,2),(2,2),(2,3)],
-    'G': [(0,4),(1,4),(2,4),(3,4),(3,3)],
-    'O': [(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)],
-    'P': [(4,3),(4,4)],
-  });
-
-  // Level 7 (5x5)
-  levels[7] = _LevelData(5, {
-    'R': [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1)],
-    'B': [(0,3),(0,4),(1,4),(1,3),(2,3),(2,2)],
-    'G': [(2,4),(3,4),(3,3),(3,2)],
-    'O': [(3,1),(3,0),(4,0),(4,1)],
-    'P': [(4,2),(4,3),(4,4)],
-  });
-
-  // Level 8 (6x6)
-  levels[8] = _LevelData(6, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(1,5),(1,4),(1,3)],
-    'B': [(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)],
-    'G': [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)],
-    'O': [(4,3),(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-  });
-
-  // Level 9 (6x6)
-  levels[9] = _LevelData(6, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5)],
-    'B': [(1,5),(1,4),(1,3),(1,2),(1,1),(1,0),(2,0),(2,1)],
-    'G': [(2,2),(2,3),(2,4),(2,5),(3,5),(3,4)],
-    'O': [(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],
-    'P': [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-  });
-
-  // Level 10 (6x6)
-  levels[10] = _LevelData(6, {
-    'R': [(0,0),(1,0),(2,0),(2,1),(1,1),(0,1),(0,2),(1,2)],
-    'B': [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3),(2,3),(2,2)],
-    'G': [(2,4),(2,5),(3,5),(3,4),(3,3),(3,2)],
-    'O': [(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],
-    'P': [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-  });
-
-  // Level 11 (6x6)
-  levels[11] = _LevelData(6, {
-    'R': [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(3,2)],
-    'B': [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3),(2,3)],
-    'G': [(2,4),(2,5),(3,5),(3,4),(3,3)],
-    'O': [(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],
-    'P': [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-  });
-
-  // Level 12 (6x6)
-  levels[12] = _LevelData(6, {
-    'R': [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0)],
-    'B': [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3)],
-    'G': [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)],
-    'O': [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],
-    'P': [(4,0),(4,1),(4,2),(4,3),(4,4),(4,5)],
-    'Y': [(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-  });
-
-  // Level 13 (6x6)
-  levels[13] = _LevelData(6, {
-    'R': [(0,0),(0,1),(1,1),(1,0),(2,0),(2,1)],
-    'B': [(0,2),(0,3),(0,4),(0,5)],
-    'G': [(1,2),(1,3),(1,4),(1,5),(2,5),(2,4),(2,3),(2,2)],
-    'O': [(3,0),(3,1),(3,2),(3,3),(3,4),(3,5)],
-    'P': [(4,5),(4,4),(4,3),(4,2),(4,1),(4,0),(5,0)],
-    'Y': [(5,1),(5,2),(5,3),(5,4),(5,5)],
-  });
-
-  // Level 14 (6x6)
-  levels[14] = _LevelData(6, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(1,3),(1,2),(1,1),(1,0)],
-    'B': [(0,4),(0,5),(1,5),(1,4)],
-    'G': [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)],
-    'O': [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],
-    'P': [(4,0),(4,1),(4,2),(5,2),(5,1),(5,0)],
-    'Y': [(4,3),(4,4),(4,5),(5,5),(5,4),(5,3)],
-  });
-
-  // Level 15 (7x7)
-  levels[15] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(1,6),(1,5),(1,4)],
-    'B': [(1,3),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)],
-    'G': [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1)],
-    'O': [(4,2),(4,3),(4,4),(4,5),(4,6),(5,6),(5,5),(5,4),(5,3),(5,2)],
-    'P': [(5,1),(5,0),(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],
-  });
-
-  // Level 16 (7x7)
-  levels[16] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],
-    'B': [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0),(2,0),(2,1)],
-    'G': [(2,2),(2,3),(2,4),(2,5),(2,6),(3,6),(3,5)],
-    'O': [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],
-    'P': [(4,4),(4,5),(4,6),(5,6),(5,5),(5,4),(5,3)],
-    'Y': [(5,2),(5,1),(5,0),(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],
-  });
-
-  // Level 17 (7x7)
-  levels[17] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2)],
-    'B': [(0,3),(0,4),(1,4),(1,3),(2,3),(2,4)],
-    'G': [(0,5),(0,6),(1,6),(1,5),(2,5),(2,6),(3,6)],
-    'O': [(3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(4,5),(4,4),(4,3)],
-    'P': [(4,6),(5,6),(5,5),(5,4),(5,3),(6,3),(6,4),(6,5),(6,6)],
-    'Y': [(4,2),(4,1),(4,0),(5,0),(5,1),(5,2),(6,2),(6,1),(6,0)],
-  });
-
-  // Level 18 (7x7)
-  levels[18] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],
-    'B': [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0)],
-    'G': [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)],
-    'O': [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],
-    'P': [(4,0),(4,1),(4,2),(4,3),(4,4),(4,5),(4,6)],
-    'Y': [(5,6),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],
-    'T': [(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],
-  });
-
-  // Level 19 (7x7)
-  levels[19] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0)],
-    'B': [(0,3),(0,4),(0,5),(0,6),(1,6),(1,5),(1,4),(1,3)],
-    'G': [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)],
-    'O': [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1)],
-    'P': [(4,2),(4,3),(4,4),(4,5),(4,6)],
-    'Y': [(5,6),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0),(6,0),(6,1)],
-    'T': [(6,2),(6,3),(6,4),(6,5),(6,6)],
-  });
-
-  // Level 20 (7x7)
-  levels[20] = _LevelData(7, {
-    'R': [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],
-    'B': [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0)],
-    'G': [(2,0),(2,1),(2,2),(2,3)],
-    'O': [(2,4),(2,5),(2,6),(3,6),(3,5)],
-    'P': [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)],
-    'Y': [(4,3),(4,4),(4,5),(4,6),(5,6),(5,5)],
-    'T': [(5,4),(5,3),(5,2),(5,1),(5,0),(6,0)],
-    'K': [(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],
-  });
-
-  // Validate all levels
   bool allPassed = true;
-  for (final entry in levels.entries) {
-    final id = entry.key;
-    final data = entry.value;
-    final result = _validate(id, data);
-    if (!result) allPassed = false;
+
+  for (final level in allLevels) {
+    final solution = allSolutions[level.id];
+    if (solution == null) {
+      print('Level ${level.id}: FAIL — no solution found');
+      allPassed = false;
+      continue;
+    }
+
+    final gridSize = level.gridSize;
+    final totalCells = gridSize * gridSize;
+    final allCells = <(int, int)>{};
+    final errors = <String>[];
+
+    for (final entry in solution.entries) {
+      final path = entry.value;
+
+      // Check adjacency
+      for (int i = 1; i < path.length; i++) {
+        final prev = path[i - 1];
+        final curr = path[i];
+        final dist = (curr.$1 - prev.$1).abs() + (curr.$2 - prev.$2).abs();
+        if (dist != 1) {
+          errors.add('  Color ${entry.key}: non-adjacent at $i: $prev -> $curr');
+        }
+      }
+
+      // Check bounds
+      for (final cell in path) {
+        if (cell.$1 < 0 || cell.$1 >= gridSize ||
+            cell.$2 < 0 || cell.$2 >= gridSize) {
+          errors.add('  Color ${entry.key}: out of bounds $cell');
+        }
+      }
+
+      // Check path has at least 2 cells
+      if (path.length < 2) {
+        errors.add('  Color ${entry.key}: path too short (${path.length})');
+      }
+
+      // Check duplicates within path
+      final pathSet = path.toSet();
+      if (pathSet.length != path.length) {
+        errors.add('  Color ${entry.key}: has duplicates');
+      }
+
+      // Check overlap
+      for (final cell in path) {
+        if (allCells.contains(cell)) {
+          errors.add('  Color ${entry.key}: cell $cell overlaps');
+        }
+      }
+      allCells.addAll(pathSet);
+    }
+
+    // Check total coverage
+    if (allCells.length != totalCells) {
+      final missing = <(int, int)>[];
+      for (int r = 0; r < gridSize; r++) {
+        for (int c = 0; c < gridSize; c++) {
+          if (!allCells.contains((r, c))) missing.add((r, c));
+        }
+      }
+      errors.add('  Coverage: ${allCells.length}/$totalCells. Missing: $missing');
+    }
+
+    // Check endpoint consistency
+    for (final pair in level.colorPairs) {
+      final path = solution[pair.color];
+      if (path == null) {
+        errors.add('  Color ${pair.color}: missing from solution');
+        continue;
+      }
+      final pStart = (pair.start.row, pair.start.col);
+      final pEnd = (pair.end.row, pair.end.col);
+      if (path.first != pStart || path.last != pEnd) {
+        errors.add('  Color ${pair.color}: endpoints mismatch '
+            'level=${pStart}->${pEnd} vs solution=${path.first}->${path.last}');
+      }
+    }
+
+    if (errors.isEmpty) {
+      print('Level ${level.id} (${gridSize}x$gridSize, '
+          '${level.colorPairs.length} colors): PASS');
+    } else {
+      print('Level ${level.id} (${gridSize}x$gridSize): FAIL');
+      for (final e in errors) print(e);
+      allPassed = false;
+    }
   }
 
+  print('');
   if (allPassed) {
-    print('\n=== ALL ${levels.length} LEVELS PASSED ===');
+    print('=== ALL ${allLevels.length} LEVELS PASSED ===');
   } else {
-    print('\n=== SOME LEVELS FAILED ===');
+    print('=== SOME LEVELS FAILED ===');
   }
-}
-
-bool _validate(int id, _LevelData data) {
-  final gridSize = data.gridSize;
-  final totalCells = gridSize * gridSize;
-  final allCells = <(int, int)>{};
-  final errors = <String>[];
-
-  for (final entry in data.paths.entries) {
-    final color = entry.key;
-    final path = entry.value;
-
-    // Check adjacency
-    for (int i = 1; i < path.length; i++) {
-      final prev = path[i - 1];
-      final curr = path[i];
-      final dist = (curr.$1 - prev.$1).abs() + (curr.$2 - prev.$2).abs();
-      if (dist != 1) {
-        errors.add('  $color: non-adjacent step at index $i: $prev -> $curr (dist=$dist)');
-      }
-    }
-
-    // Check bounds
-    for (final cell in path) {
-      if (cell.$1 < 0 || cell.$1 >= gridSize || cell.$2 < 0 || cell.$2 >= gridSize) {
-        errors.add('  $color: out of bounds cell $cell');
-      }
-    }
-
-    // Check duplicates within path
-    final pathSet = path.toSet();
-    if (pathSet.length != path.length) {
-      errors.add('  $color: has ${path.length - pathSet.length} duplicate cells within path');
-    }
-
-    // Check overlap with other paths
-    for (final cell in path) {
-      if (allCells.contains(cell)) {
-        errors.add('  $color: cell $cell overlaps with another path');
-      }
-    }
-    allCells.addAll(pathSet);
-  }
-
-  // Check total coverage
-  if (allCells.length != totalCells) {
-    final missing = <(int, int)>[];
-    for (int r = 0; r < gridSize; r++) {
-      for (int c = 0; c < gridSize; c++) {
-        if (!allCells.contains((r, c))) missing.add((r, c));
-      }
-    }
-    errors.add('  Coverage: ${allCells.length}/$totalCells cells. Missing: $missing');
-  }
-
-  if (errors.isEmpty) {
-    print('Level $id (${gridSize}x$gridSize): PASS  (${data.paths.length} colors, $totalCells cells)');
-    return true;
-  } else {
-    print('Level $id (${gridSize}x$gridSize): FAIL');
-    for (final e in errors) {
-      print(e);
-    }
-    return false;
-  }
-}
-
-class _LevelData {
-  final int gridSize;
-  final Map<String, List<(int, int)>> paths;
-  _LevelData(this.gridSize, this.paths);
 }
