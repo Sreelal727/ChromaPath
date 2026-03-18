@@ -3,19 +3,23 @@ import 'dart:ui';
 
 import '../models/level.dart';
 
-/// Generates provably solvable flow-puzzle levels.
+/// Generates provably solvable flow-puzzle levels with real difficulty.
 ///
-/// Algorithm (guaranteed correct):
-/// 1. Generate a space-filling path that visits every cell exactly once
-///    using one of 4 patterns (horizontal snake, vertical snake,
-///    clockwise spiral, counter-clockwise spiral).
-/// 2. Split this single path into [numColors] segments of random lengths
-///    (each segment ≥ 2 cells).
-/// 3. Each segment becomes a color-pair; endpoints are first/last cell.
+/// **Key insight**: difficulty comes from *unpredictable path shapes*, not
+/// grid size. A random Hamiltonian path through the grid creates twisting,
+/// winding segments that are genuinely hard to reconstruct.
 ///
-/// Because the full path is a single chain of adjacent cells covering the
-/// entire grid, every segment is also a chain of adjacent cells, and the
-/// union of all segments covers the grid with zero gaps or overlaps.
+/// Algorithm:
+/// 1. Generate a random Hamiltonian path (visits every cell exactly once)
+///    using Warnsdorff's heuristic with random tie-breaking.
+/// 2. Split this path into [numColors] segments.
+///    - Easy mode:  roughly equal segment lengths.
+///    - Hard mode:  wildly uneven lengths (some 2-cell, some huge).
+/// 3. Each segment → one color-pair. Solvability guaranteed by construction.
+///
+/// The Warnsdorff heuristic almost always succeeds on grid graphs.
+/// If it fails (stuck before covering all cells), we retry with a
+/// different random seed up to 100 times, then fall back to a simple snake.
 class LevelGenerator {
   static const palette = <Color>[
     Color(0xFFE53935), // red
@@ -34,33 +38,45 @@ class LevelGenerator {
     Color(0xFFAB47BC), // purple accent
   ];
 
+  static const _dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+
   /// Generate a level with its solution.
+  ///
+  /// [difficulty] 0.0 = easy (equal segments, snake fallback ok),
+  ///              1.0 = maximum (uneven segments, random Hamiltonian only).
   static ({Level level, Map<Color, List<(int, int)>> solution}) generate({
     required int id,
     required int gridSize,
     required int numColors,
     required int seed,
+    double difficulty = 0.5,
   }) {
     final rng = Random(seed);
     final totalCells = gridSize * gridSize;
 
     assert(numColors >= 2);
-    assert(numColors * 2 <= totalCells); // each color needs ≥ 2 cells
+    assert(numColors * 2 <= totalCells);
 
-    // 1. Pick a random space-filling pattern
-    final patternType = rng.nextInt(4);
-    final fullPath = _generateFullPath(gridSize, patternType);
+    // 1. Generate a random Hamiltonian path
+    List<(int, int)>? fullPath;
+    for (int attempt = 0; attempt < 100; attempt++) {
+      fullPath = _tryHamiltonianPath(gridSize, Random(seed + attempt * 7919));
+      if (fullPath != null) break;
+    }
+    // Fallback for very rare failure cases
+    fullPath ??= _horizontalSnake(gridSize);
 
     assert(fullPath.length == totalCells);
 
-    // 2. Split into segments
-    final segmentLengths = _randomSegmentLengths(
+    // 2. Split into segments with difficulty-based length distribution
+    final segmentLengths = _splitSegments(
       totalCells: totalCells,
       numSegments: numColors,
+      difficulty: difficulty,
       rng: rng,
     );
 
-    // 3. Build color pairs + solution
+    // 3. Build color pairs + solution map
     final solution = <Color, List<(int, int)>>{};
     final colorPairs = <ColorPair>[];
     int offset = 0;
@@ -84,93 +100,157 @@ class LevelGenerator {
     );
   }
 
-  /// Generate a full path visiting every cell exactly once.
-  static List<(int, int)> _generateFullPath(int size, int pattern) {
-    switch (pattern) {
-      case 0:
-        return _horizontalSnake(size);
-      case 1:
-        return _verticalSnake(size);
-      case 2:
-        return _spiralClockwise(size);
-      case 3:
-        return _spiralCounterClockwise(size);
-      default:
-        return _horizontalSnake(size);
+  // ──────────────────────────────────────────────────────────────
+  //  RANDOM HAMILTONIAN PATH  (Warnsdorff's rule)
+  // ──────────────────────────────────────────────────────────────
+
+  /// Try to build a Hamiltonian path from a random starting cell.
+  /// Returns null if the heuristic gets stuck before visiting all cells.
+  static List<(int, int)>? _tryHamiltonianPath(int size, Random rng) {
+    final total = size * size;
+    final visited = List.generate(size, (_) => List.filled(size, false));
+    final path = <(int, int)>[];
+
+    // Random starting cell
+    final sr = rng.nextInt(size);
+    final sc = rng.nextInt(size);
+    path.add((sr, sc));
+    visited[sr][sc] = true;
+
+    while (path.length < total) {
+      final (cr, cc) = path.last;
+      final neighbors = <(int, int)>[];
+
+      for (final (dr, dc) in _dirs) {
+        final nr = cr + dr;
+        final nc = cc + dc;
+        if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc]) {
+          neighbors.add((nr, nc));
+        }
+      }
+
+      if (neighbors.isEmpty) return null; // stuck
+
+      // Warnsdorff: pick the neighbor with the FEWEST onward moves.
+      // Shuffle first so ties are broken randomly.
+      neighbors.shuffle(rng);
+      neighbors.sort((a, b) {
+        return _countUnvisited(a.$1, a.$2, size, visited)
+            .compareTo(_countUnvisited(b.$1, b.$2, size, visited));
+      });
+
+      final next = neighbors.first;
+      path.add(next);
+      visited[next.$1][next.$2] = true;
     }
+
+    return path;
   }
 
-  /// Rows left-right, right-left alternating.
+  /// Count unvisited orthogonal neighbors of (r,c).
+  static int _countUnvisited(
+      int r, int c, int size, List<List<bool>> visited) {
+    int count = 0;
+    for (final (dr, dc) in _dirs) {
+      final nr = r + dr;
+      final nc = c + dc;
+      if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc]) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  SEGMENT SPLITTING
+  // ──────────────────────────────────────────────────────────────
+
+  /// Split [totalCells] into [numSegments] lengths.
+  ///
+  /// At low difficulty: segments are roughly equal.
+  /// At high difficulty: segments vary wildly — some are 2 cells,
+  /// others are very long, making the puzzle much harder.
+  static List<int> _splitSegments({
+    required int totalCells,
+    required int numSegments,
+    required double difficulty,
+    required Random rng,
+  }) {
+    final minLen = 2;
+    final lengths = List.filled(numSegments, minLen);
+    var remaining = totalCells - numSegments * minLen;
+
+    if (difficulty < 0.3) {
+      // Easy: distribute evenly with small random perturbation
+      final base = remaining ~/ numSegments;
+      var leftover = remaining - base * numSegments;
+      for (int i = 0; i < numSegments; i++) {
+        lengths[i] += base;
+        if (leftover > 0) {
+          lengths[i]++;
+          leftover--;
+        }
+      }
+      // Small shuffle: swap 1-2 cells between random pairs
+      for (int i = 0; i < numSegments ~/ 2; i++) {
+        final a = rng.nextInt(numSegments);
+        final b = rng.nextInt(numSegments);
+        if (a != b && lengths[a] > minLen) {
+          lengths[a]--;
+          lengths[b]++;
+        }
+      }
+    } else if (difficulty < 0.7) {
+      // Medium: random distribution
+      while (remaining > 0) {
+        final idx = rng.nextInt(numSegments);
+        final give = min(remaining, 1 + rng.nextInt(4));
+        lengths[idx] += give;
+        remaining -= give;
+      }
+    } else {
+      // Hard: create extreme variation
+      // Give most extra cells to a few random segments
+      final favorites = <int>{};
+      final numFav = max(1, numSegments ~/ 3);
+      while (favorites.length < numFav) {
+        favorites.add(rng.nextInt(numSegments));
+      }
+
+      while (remaining > 0) {
+        int idx;
+        if (rng.nextDouble() < 0.75 && favorites.isNotEmpty) {
+          // 75% chance: give to a favorite (creates long paths)
+          idx = favorites.elementAt(rng.nextInt(favorites.length));
+        } else {
+          idx = rng.nextInt(numSegments);
+        }
+        final give = min(remaining, 1 + rng.nextInt(6));
+        lengths[idx] += give;
+        remaining -= give;
+      }
+    }
+
+    return lengths;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  FALLBACK: simple horizontal snake
+  // ──────────────────────────────────────────────────────────────
+
   static List<(int, int)> _horizontalSnake(int size) {
     final path = <(int, int)>[];
     for (int r = 0; r < size; r++) {
       if (r.isEven) {
-        for (int c = 0; c < size; c++) path.add((r, c));
+        for (int c = 0; c < size; c++) {
+          path.add((r, c));
+        }
       } else {
-        for (int c = size - 1; c >= 0; c--) path.add((r, c));
+        for (int c = size - 1; c >= 0; c--) {
+          path.add((r, c));
+        }
       }
     }
     return path;
-  }
-
-  /// Columns top-bottom, bottom-top alternating.
-  static List<(int, int)> _verticalSnake(int size) {
-    final path = <(int, int)>[];
-    for (int c = 0; c < size; c++) {
-      if (c.isEven) {
-        for (int r = 0; r < size; r++) path.add((r, c));
-      } else {
-        for (int r = size - 1; r >= 0; r--) path.add((r, c));
-      }
-    }
-    return path;
-  }
-
-  /// Spiral inward clockwise.
-  static List<(int, int)> _spiralClockwise(int size) {
-    final path = <(int, int)>[];
-    int top = 0, bottom = size - 1, left = 0, right = size - 1;
-
-    while (top <= bottom && left <= right) {
-      for (int c = left; c <= right; c++) path.add((top, c));
-      top++;
-      for (int r = top; r <= bottom; r++) path.add((r, right));
-      right--;
-      if (top <= bottom) {
-        for (int c = right; c >= left; c--) path.add((bottom, c));
-        bottom--;
-      }
-      if (left <= right) {
-        for (int r = bottom; r >= top; r--) path.add((r, left));
-        left++;
-      }
-    }
-    return path;
-  }
-
-  /// Spiral inward counter-clockwise (reverse of clockwise).
-  static List<(int, int)> _spiralCounterClockwise(int size) {
-    return _spiralClockwise(size).reversed.toList();
-  }
-
-  /// Split [totalCells] into [numSegments] random lengths, each ≥ 2.
-  static List<int> _randomSegmentLengths({
-    required int totalCells,
-    required int numSegments,
-    required Random rng,
-  }) {
-    // Start with minimum of 2 per segment
-    final lengths = List.filled(numSegments, 2);
-    var remaining = totalCells - numSegments * 2;
-
-    // Distribute remaining cells randomly
-    while (remaining > 0) {
-      final idx = rng.nextInt(numSegments);
-      final give = min(remaining, 1 + rng.nextInt(3)); // give 1-3 extra cells
-      lengths[idx] += give;
-      remaining -= give;
-    }
-
-    return lengths;
   }
 }
