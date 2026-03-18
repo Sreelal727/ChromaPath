@@ -77,6 +77,10 @@ class GameController {
     newPaths[activeColor] = List.from(path)..add((row, col));
     state = state.copyWith(paths: newPaths);
     _rebuildGrid();
+
+    // Also check solved after every cell extension — the player might fill
+    // the last empty cell with a mid-path segment.
+    _checkSolved();
   }
 
   /// End the current drawing action
@@ -84,6 +88,26 @@ class GameController {
     if (state.activeColor != null) {
       state = state.copyWith(clearActiveColor: true);
     }
+  }
+
+  /// Apply a full solution path for a given color (used by hint system).
+  void applyPath(Color color, List<(int, int)> solutionPath) {
+    // First clear any cells occupied by this color's current path
+    _clearPath(color);
+    // Also clear any other paths that overlap with the solution path
+    for (final cell in solutionPath) {
+      for (final entry in state.paths.entries) {
+        if (entry.key != color && entry.value.contains(cell)) {
+          _clearPath(entry.key);
+        }
+      }
+    }
+    // Set the full solution path
+    final newPaths = Map<Color, List<(int, int)>>.from(state.paths);
+    newPaths[color] = List.from(solutionPath);
+    state = state.copyWith(paths: newPaths, clearActiveColor: true);
+    _rebuildGrid();
+    _checkSolved();
   }
 
   void _clearPath(Color color) {
@@ -138,33 +162,15 @@ class GameController {
     for (final pair in state.level.colorPairs) {
       final path = state.paths[pair.color];
       if (path == null || path.isEmpty) return;
-      if (path.first != (pair.start.row, pair.start.col) &&
-          path.first != (pair.end.row, pair.end.col)) return;
-      if (path.last != (pair.start.row, pair.start.col) &&
-          path.last != (pair.end.row, pair.end.col)) return;
+      final start = (pair.start.row, pair.start.col);
+      final end = (pair.end.row, pair.end.col);
+      if (!((path.first == start && path.last == end) ||
+            (path.first == end && path.last == start))) {
+        return;
+      }
     }
 
     state = state.copyWith(isSolved: true, clearActiveColor: true);
-  }
-
-  /// Apply a full solution path for a given color (used by hint system).
-  void applyPath(Color color, List<(int, int)> solutionPath) {
-    // First clear any cells occupied by this color's current path
-    _clearPath(color);
-    // Also clear any other paths that overlap with the solution path
-    for (final cell in solutionPath) {
-      for (final entry in state.paths.entries) {
-        if (entry.key != color && entry.value.contains(cell)) {
-          _clearPath(entry.key);
-        }
-      }
-    }
-    // Set the full solution path
-    final newPaths = Map<Color, List<(int, int)>>.from(state.paths);
-    newPaths[color] = List.from(solutionPath);
-    state = state.copyWith(paths: newPaths, clearActiveColor: true);
-    _rebuildGrid();
-    _checkSolved();
   }
 
   int get filledCells {

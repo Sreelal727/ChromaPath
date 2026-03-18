@@ -21,19 +21,14 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late GameController _controller;
-  late AnimationController _solveAnimController;
   bool _showSolveOverlay = false;
   int _coins = 0;
-  int _coinsEarned = 0; // coins earned on this solve
+  int _coinsEarned = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = GameController(widget.level);
-    _solveAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
     _loadCoins();
   }
 
@@ -44,11 +39,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _solveAnimController.dispose();
     super.dispose();
   }
 
   void _onSolved() async {
+    if (_showSolveOverlay) return; // prevent double-trigger
     final isFirstTime = await ProgressService.markCompleted(widget.level.id);
     int earned = 0;
     if (isFirstTime) {
@@ -56,11 +51,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final updated = await CoinService.addCoins(earned);
       _coins = updated;
     }
+    if (!mounted) return;
     setState(() {
       _showSolveOverlay = true;
       _coinsEarned = earned;
     });
-    _solveAnimController.forward();
+
+    // Auto-advance to next level after a short delay
+    if (widget.level.id < 20) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted && _showSolveOverlay) {
+          _nextLevel();
+        }
+      });
+    }
   }
 
   void _resetLevel() {
@@ -68,7 +72,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _controller.reset();
       _showSolveOverlay = false;
       _coinsEarned = 0;
-      _solveAnimController.reset();
     });
   }
 
@@ -77,7 +80,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final solution = allSolutions[widget.level.id];
     if (solution == null) return;
 
-    // Find a color that is NOT yet fully connected
     Color? targetColor;
     List<(int, int)>? targetPath;
     for (final pair in widget.level.colorPairs) {
@@ -96,7 +98,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _coins = result;
 
-    // Apply the solution path for this color
     _controller.applyPath(targetColor, targetPath);
     setState(() {});
 
@@ -117,7 +118,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     _coins = result;
 
-    // Apply all solution paths
     for (final entry in solution.entries) {
       _controller.applyPath(entry.key, entry.value);
     }
@@ -187,15 +187,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   const SizedBox(width: 6),
                   Text(
                     'You have $_coins coins',
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      color: Colors.white70,
-                    ),
+                    style: GoogleFonts.poppins(fontSize: 15, color: Colors.white70),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Reveal one path
               _buildHintOption(
                 icon: Icons.route_rounded,
                 title: 'Reveal One Flow',
@@ -207,7 +203,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 },
               ),
               const SizedBox(height: 12),
-              // Solve entire puzzle
               _buildHintOption(
                 icon: Icons.auto_fix_high_rounded,
                 title: 'Solve Puzzle',
@@ -259,21 +254,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: canAfford ? Colors.white : Colors.white38,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: canAfford ? Colors.white54 : Colors.white24,
-                    ),
-                  ),
+                  Text(title,
+                      style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: canAfford ? Colors.white : Colors.white38)),
+                  Text(subtitle,
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: canAfford ? Colors.white54 : Colors.white24)),
                 ],
               ),
             ),
@@ -292,14 +281,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       color: canAfford ? Colors.amber : Colors.white24,
                       size: 16),
                   const SizedBox(width: 4),
-                  Text(
-                    '$cost',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: canAfford ? Colors.amber : Colors.white24,
-                    ),
-                  ),
+                  Text('$cost',
+                      style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: canAfford ? Colors.amber : Colors.white24)),
                 ],
               ),
             ),
@@ -312,6 +298,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final gridSize = widget.level.gridSize;
+    final filled = _controller.filledCells;
+    final total = widget.level.totalCells;
+    final fillPercent = filled / total;
 
     return Scaffold(
       appBar: AppBar(
@@ -334,14 +323,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               children: [
                 const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
                 const SizedBox(width: 4),
-                Text(
-                  '$_coins',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.amber,
-                  ),
-                ),
+                Text('$_coins',
+                    style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber)),
               ],
             ),
           ),
@@ -372,21 +358,59 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
                 _buildStatChip(
                   Icons.grid_4x4_rounded,
-                  'Cells: ${_controller.filledCells}/${widget.level.totalCells}',
+                  'Cells: $filled/$total',
                 ),
                 _buildGridSizeChip(),
               ],
             ),
           ),
+          // Cell fill progress bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: fillPercent,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFF2A2A4A),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      fillPercent >= 1.0
+                          ? const Color(0xFF43A047)
+                          : const Color(0xFF6C63FF),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (filled < total &&
+                    _controller.flowsCompleted ==
+                        widget.level.colorPairs.length)
+                  Text(
+                    'All flows connected! Fill every cell to complete.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.amber.withAlpha(200),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ).animate(onPlay: (c) => c.repeat(reverse: true)).fadeIn(
+                      duration: 800.ms),
+              ],
+            ),
+          ),
           const Spacer(),
-          // Game grid
-          _buildGrid(gridSize),
-          const Spacer(),
-          // Color legend
-          _buildColorLegend(),
-          const SizedBox(height: 24),
-          // Solve overlay
+          // Solve overlay (shown above grid when solved)
           if (_showSolveOverlay) _buildSolveOverlay(),
+          if (!_showSolveOverlay) ...[
+            // Game grid
+            _buildGrid(gridSize),
+            const Spacer(),
+            // Color legend
+            _buildColorLegend(),
+            const SizedBox(height: 24),
+          ],
+          if (_showSolveOverlay) const Spacer(),
         ],
       ),
     );
@@ -404,13 +428,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         children: [
           Icon(icon, size: 16, color: const Color(0xFF6C63FF)),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.white70,
-            ),
-          ),
+          Text(text,
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white70)),
         ],
       ),
     );
@@ -426,10 +445,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       child: Text(
         '${widget.level.gridSize}×${widget.level.gridSize}',
         style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFFE94560),
-        ),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFFE94560)),
       ),
     );
   }
@@ -451,8 +469,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               border: Border.all(color: AppTheme.gridLine, width: 2),
             ),
             child: GestureDetector(
-              onPanStart: (details) => _handlePan(details.localPosition, cellSize),
-              onPanUpdate: (details) => _handlePanUpdate(details.localPosition, cellSize, gridPixelSize),
+              onPanStart: (d) => _handlePan(d.localPosition, cellSize),
+              onPanUpdate: (d) =>
+                  _handlePanUpdate(d.localPosition, cellSize, gridPixelSize),
               onPanEnd: (_) => _handlePanEnd(),
               child: CustomPaint(
                 painter: GridPainter(
@@ -469,6 +488,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handlePan(Offset position, double cellSize) {
+    if (_showSolveOverlay) return;
     final col = (position.dx / cellSize).floor();
     final row = (position.dy / cellSize).floor();
     final gridSize = widget.level.gridSize;
@@ -477,9 +497,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _handlePanUpdate(Offset position, double cellSize, double gridPixelSize) {
-    if (position.dx < 0 || position.dy < 0 ||
-        position.dx >= gridPixelSize || position.dy >= gridPixelSize) return;
+  void _handlePanUpdate(
+      Offset position, double cellSize, double gridPixelSize) {
+    if (_showSolveOverlay) return;
+    if (position.dx < 0 ||
+        position.dy < 0 ||
+        position.dx >= gridPixelSize ||
+        position.dy >= gridPixelSize) return;
     final col = (position.dx / cellSize).floor();
     final row = (position.dy / cellSize).floor();
     final gridSize = widget.level.gridSize;
@@ -496,6 +520,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handlePanEnd() {
+    if (_showSolveOverlay) return;
     setState(() => _controller.onCellUp());
   }
 
@@ -550,29 +575,46 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildSolveOverlay() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       child: Column(
         children: [
+          // Big animated checkmark
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF43A047).withAlpha(38),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF43A047), width: 3),
+            ),
+            child: const Icon(Icons.check_rounded,
+                color: Color(0xFF43A047), size: 48),
+          )
+              .animate()
+              .fadeIn(duration: 300.ms)
+              .scaleXY(begin: 0.3, end: 1.0, curve: Curves.elasticOut,
+                  duration: 600.ms),
+          const SizedBox(height: 16),
           Text(
-            'Solved!',
+            'Level Complete!',
             style: GoogleFonts.poppins(
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF43A047),
             ),
           )
               .animate()
-              .fadeIn(duration: 400.ms)
-              .scaleXY(begin: 0.5, end: 1.0),
+              .fadeIn(delay: 200.ms, duration: 400.ms),
           if (_coinsEarned > 0) ...[
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 22),
+                const Icon(Icons.monetization_on,
+                    color: Colors.amber, size: 24),
                 const SizedBox(width: 6),
                 Text(
-                  '+$_coinsEarned coins',
+                  '+$_coinsEarned coins earned!',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -580,29 +622,47 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ],
-            ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+            ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton.icon(
+              OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_rounded),
+                icon: const Icon(Icons.grid_view_rounded),
                 label: const Text('Levels'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: const BorderSide(color: Colors.white24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
               ),
               const SizedBox(width: 16),
               if (widget.level.id < 20)
                 ElevatedButton.icon(
                   onPressed: _nextLevel,
                   icon: const Icon(Icons.arrow_forward_rounded),
-                  label: const Text('Next'),
+                  label: const Text('Next Level'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF43A047),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 14),
                   ),
                 ),
             ],
-          ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+          ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
+          if (widget.level.id < 20) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Auto-advancing in 3 seconds...',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.white38,
+              ),
+            ).animate().fadeIn(delay: 600.ms, duration: 300.ms),
+          ],
         ],
       ),
     );
@@ -614,8 +674,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final nextLevel = allLevels.firstWhere((l) => l.id == nextId);
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => GameScreen(level: nextLevel),
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => GameScreen(level: nextLevel),
+          transitionsBuilder: (_, animation, __, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                  parent: animation, curve: Curves.easeInOut)),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
         ),
       );
     } catch (_) {
