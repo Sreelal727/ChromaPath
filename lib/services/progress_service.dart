@@ -13,13 +13,18 @@ class ProgressService {
         .toSet();
   }
 
-  static Future<void> markCompleted(int levelId) async {
+  /// Marks a level completed and returns true if this is the FIRST time
+  /// (so caller can award coins).
+  static Future<bool> markCompleted(int levelId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('$_prefix$levelId', true);
+    final key = '$_prefix$levelId';
+    final alreadyDone = prefs.getBool(key) ?? false;
+    await prefs.setBool(key, true);
     final current = prefs.getInt(_highestUnlocked) ?? 1;
     if (levelId >= current) {
       await prefs.setInt(_highestUnlocked, levelId + 1);
     }
+    return !alreadyDone;
   }
 
   static Future<int> getHighestUnlocked() async {

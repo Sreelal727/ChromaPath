@@ -147,6 +147,26 @@ class GameController {
     state = state.copyWith(isSolved: true, clearActiveColor: true);
   }
 
+  /// Apply a full solution path for a given color (used by hint system).
+  void applyPath(Color color, List<(int, int)> solutionPath) {
+    // First clear any cells occupied by this color's current path
+    _clearPath(color);
+    // Also clear any other paths that overlap with the solution path
+    for (final cell in solutionPath) {
+      for (final entry in state.paths.entries) {
+        if (entry.key != color && entry.value.contains(cell)) {
+          _clearPath(entry.key);
+        }
+      }
+    }
+    // Set the full solution path
+    final newPaths = Map<Color, List<(int, int)>>.from(state.paths);
+    newPaths[color] = List.from(solutionPath);
+    state = state.copyWith(paths: newPaths, clearActiveColor: true);
+    _rebuildGrid();
+    _checkSolved();
+  }
+
   int get filledCells {
     int count = 0;
     for (final row in state.grid) {

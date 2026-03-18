@@ -10,162 +10,233 @@ const _purple = Color(0xFF8E24AA);
 const _yellow = Color(0xFFFDD835);
 const _teal = Color(0xFF00897B);
 const _pink = Color(0xFFD81B60);
-const _maroon = Color(0xFF6D4C41);
 
-final List<Level> allLevels = [
-  // === 5x5 Levels (1-7) ===
-  Level(id: 1, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(4, 4)),
-    ColorPair(color: _blue, start: const Endpoint(0, 4), end: const Endpoint(4, 0)),
-    ColorPair(color: _green, start: const Endpoint(2, 0), end: const Endpoint(2, 4)),
-  ]),
-  Level(id: 2, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 1), end: const Endpoint(3, 1)),
-    ColorPair(color: _blue, start: const Endpoint(0, 3), end: const Endpoint(3, 3)),
-    ColorPair(color: _green, start: const Endpoint(1, 0), end: const Endpoint(1, 4)),
-    ColorPair(color: _orange, start: const Endpoint(4, 0), end: const Endpoint(4, 4)),
-  ]),
-  Level(id: 3, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(2, 2)),
-    ColorPair(color: _blue, start: const Endpoint(0, 4), end: const Endpoint(2, 3)),
-    ColorPair(color: _green, start: const Endpoint(4, 0), end: const Endpoint(3, 3)),
-    ColorPair(color: _orange, start: const Endpoint(4, 4), end: const Endpoint(3, 1)),
-  ]),
-  Level(id: 4, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(4, 2)),
-    ColorPair(color: _blue, start: const Endpoint(0, 2), end: const Endpoint(4, 4)),
-    ColorPair(color: _green, start: const Endpoint(0, 4), end: const Endpoint(4, 0)),
-    ColorPair(color: _orange, start: const Endpoint(2, 1), end: const Endpoint(2, 3)),
-  ]),
-  Level(id: 5, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(3, 0)),
-    ColorPair(color: _blue, start: const Endpoint(0, 2), end: const Endpoint(3, 4)),
-    ColorPair(color: _green, start: const Endpoint(1, 4), end: const Endpoint(4, 4)),
-    ColorPair(color: _orange, start: const Endpoint(4, 0), end: const Endpoint(4, 2)),
-    ColorPair(color: _purple, start: const Endpoint(1, 1), end: const Endpoint(2, 3)),
-  ]),
-  Level(id: 6, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 1), end: const Endpoint(4, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 3), end: const Endpoint(4, 1)),
-    ColorPair(color: _green, start: const Endpoint(0, 0), end: const Endpoint(2, 0)),
-    ColorPair(color: _orange, start: const Endpoint(2, 4), end: const Endpoint(4, 4)),
-    ColorPair(color: _purple, start: const Endpoint(4, 0), end: const Endpoint(3, 2)),
-  ]),
-  Level(id: 7, gridSize: 5, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(1, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 4), end: const Endpoint(3, 1)),
-    ColorPair(color: _green, start: const Endpoint(2, 0), end: const Endpoint(4, 2)),
-    ColorPair(color: _orange, start: const Endpoint(3, 3), end: const Endpoint(4, 4)),
-    ColorPair(color: _purple, start: const Endpoint(4, 0), end: const Endpoint(1, 1)),
-  ]),
+// =========================================================================
+// ALL levels are designed SOLUTION-FIRST:
+//   1. A complete tiling (set of non-overlapping paths covering every cell)
+//      is created first.
+//   2. Endpoints are extracted from each path.
+//   3. The solution is stored so the hint system can reveal it.
+// This guarantees every puzzle is solvable.
+// =========================================================================
 
-  // === 6x6 Levels (8-14) ===
-  Level(id: 8, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(5, 5)),
-    ColorPair(color: _blue, start: const Endpoint(0, 5), end: const Endpoint(5, 0)),
-    ColorPair(color: _green, start: const Endpoint(0, 2), end: const Endpoint(5, 3)),
-    ColorPair(color: _orange, start: const Endpoint(2, 0), end: const Endpoint(2, 5)),
-  ]),
-  Level(id: 9, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(3, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 5), end: const Endpoint(5, 0)),
-    ColorPair(color: _green, start: const Endpoint(1, 2), end: const Endpoint(4, 5)),
-    ColorPair(color: _orange, start: const Endpoint(5, 1), end: const Endpoint(5, 4)),
-    ColorPair(color: _purple, start: const Endpoint(3, 0), end: const Endpoint(1, 4)),
-  ]),
-  Level(id: 10, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 1), end: const Endpoint(4, 1)),
-    ColorPair(color: _blue, start: const Endpoint(0, 4), end: const Endpoint(4, 4)),
-    ColorPair(color: _green, start: const Endpoint(1, 0), end: const Endpoint(1, 5)),
-    ColorPair(color: _orange, start: const Endpoint(5, 0), end: const Endpoint(5, 5)),
-    ColorPair(color: _purple, start: const Endpoint(2, 2), end: const Endpoint(2, 3)),
-  ]),
-  Level(id: 11, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(5, 2)),
-    ColorPair(color: _blue, start: const Endpoint(0, 3), end: const Endpoint(3, 0)),
-    ColorPair(color: _green, start: const Endpoint(0, 5), end: const Endpoint(5, 5)),
-    ColorPair(color: _orange, start: const Endpoint(2, 1), end: const Endpoint(5, 0)),
-    ColorPair(color: _purple, start: const Endpoint(2, 4), end: const Endpoint(4, 3)),
-    ColorPair(color: _yellow, start: const Endpoint(4, 1), end: const Endpoint(3, 4)),
-  ]),
-  Level(id: 12, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(2, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 5), end: const Endpoint(3, 2)),
-    ColorPair(color: _green, start: const Endpoint(1, 1), end: const Endpoint(5, 5)),
-    ColorPair(color: _orange, start: const Endpoint(3, 0), end: const Endpoint(5, 0)),
-    ColorPair(color: _purple, start: const Endpoint(4, 3), end: const Endpoint(4, 5)),
-    ColorPair(color: _yellow, start: const Endpoint(1, 4), end: const Endpoint(5, 2)),
-  ]),
-  Level(id: 13, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 2), end: const Endpoint(3, 5)),
-    ColorPair(color: _blue, start: const Endpoint(0, 0), end: const Endpoint(5, 4)),
-    ColorPair(color: _green, start: const Endpoint(1, 1), end: const Endpoint(4, 0)),
-    ColorPair(color: _orange, start: const Endpoint(2, 3), end: const Endpoint(5, 0)),
-    ColorPair(color: _purple, start: const Endpoint(0, 5), end: const Endpoint(5, 5)),
-    ColorPair(color: _yellow, start: const Endpoint(3, 1), end: const Endpoint(5, 2)),
-  ]),
-  Level(id: 14, gridSize: 6, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(4, 4)),
-    ColorPair(color: _blue, start: const Endpoint(0, 3), end: const Endpoint(5, 1)),
-    ColorPair(color: _green, start: const Endpoint(1, 5), end: const Endpoint(5, 5)),
-    ColorPair(color: _orange, start: const Endpoint(2, 0), end: const Endpoint(3, 2)),
-    ColorPair(color: _purple, start: const Endpoint(5, 0), end: const Endpoint(3, 4)),
-    ColorPair(color: _yellow, start: const Endpoint(0, 5), end: const Endpoint(2, 2)),
-  ]),
+/// Each solution is a map from Color → ordered list of (row,col) cells.
+/// The first and last element of each list are the endpoints shown to the
+/// player; the intermediate cells are the hidden path the player must find.
+typedef LevelSolution = Map<Color, List<(int, int)>>;
 
-  // === 7x7 Levels (15-20) ===
-  Level(id: 15, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(6, 6)),
-    ColorPair(color: _blue, start: const Endpoint(0, 6), end: const Endpoint(6, 0)),
-    ColorPair(color: _green, start: const Endpoint(0, 3), end: const Endpoint(6, 3)),
-    ColorPair(color: _orange, start: const Endpoint(3, 0), end: const Endpoint(3, 6)),
-    ColorPair(color: _purple, start: const Endpoint(1, 1), end: const Endpoint(5, 5)),
-  ]),
-  Level(id: 16, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(4, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 6), end: const Endpoint(6, 0)),
-    ColorPair(color: _green, start: const Endpoint(1, 2), end: const Endpoint(5, 6)),
-    ColorPair(color: _orange, start: const Endpoint(2, 0), end: const Endpoint(6, 4)),
-    ColorPair(color: _purple, start: const Endpoint(3, 5), end: const Endpoint(6, 2)),
-    ColorPair(color: _yellow, start: const Endpoint(0, 4), end: const Endpoint(6, 6)),
-  ]),
-  Level(id: 17, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 1), end: const Endpoint(6, 5)),
-    ColorPair(color: _blue, start: const Endpoint(0, 5), end: const Endpoint(6, 1)),
-    ColorPair(color: _green, start: const Endpoint(1, 0), end: const Endpoint(5, 0)),
-    ColorPair(color: _orange, start: const Endpoint(1, 6), end: const Endpoint(5, 6)),
-    ColorPair(color: _purple, start: const Endpoint(2, 2), end: const Endpoint(4, 4)),
-    ColorPair(color: _yellow, start: const Endpoint(3, 1), end: const Endpoint(3, 5)),
-    ColorPair(color: _teal, start: const Endpoint(0, 0), end: const Endpoint(6, 6)),
-  ]),
-  Level(id: 18, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(3, 3)),
-    ColorPair(color: _blue, start: const Endpoint(0, 6), end: const Endpoint(6, 0)),
-    ColorPair(color: _green, start: const Endpoint(1, 2), end: const Endpoint(6, 6)),
-    ColorPair(color: _orange, start: const Endpoint(2, 4), end: const Endpoint(5, 1)),
-    ColorPair(color: _purple, start: const Endpoint(0, 3), end: const Endpoint(4, 6)),
-    ColorPair(color: _yellow, start: const Endpoint(4, 0), end: const Endpoint(6, 3)),
-    ColorPair(color: _teal, start: const Endpoint(5, 4), end: const Endpoint(2, 0)),
-  ]),
-  Level(id: 19, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(6, 2)),
-    ColorPair(color: _blue, start: const Endpoint(0, 4), end: const Endpoint(6, 6)),
-    ColorPair(color: _green, start: const Endpoint(1, 1), end: const Endpoint(4, 5)),
-    ColorPair(color: _orange, start: const Endpoint(1, 6), end: const Endpoint(5, 0)),
-    ColorPair(color: _purple, start: const Endpoint(2, 3), end: const Endpoint(6, 0)),
-    ColorPair(color: _yellow, start: const Endpoint(3, 0), end: const Endpoint(3, 6)),
-    ColorPair(color: _teal, start: const Endpoint(0, 6), end: const Endpoint(5, 3)),
-    ColorPair(color: _pink, start: const Endpoint(6, 4), end: const Endpoint(4, 2)),
-  ]),
-  Level(id: 20, gridSize: 7, colorPairs: [
-    ColorPair(color: _red, start: const Endpoint(0, 0), end: const Endpoint(5, 5)),
-    ColorPair(color: _blue, start: const Endpoint(0, 3), end: const Endpoint(6, 3)),
-    ColorPair(color: _green, start: const Endpoint(0, 6), end: const Endpoint(6, 0)),
-    ColorPair(color: _orange, start: const Endpoint(1, 1), end: const Endpoint(4, 4)),
-    ColorPair(color: _purple, start: const Endpoint(2, 5), end: const Endpoint(6, 6)),
-    ColorPair(color: _yellow, start: const Endpoint(3, 0), end: const Endpoint(5, 2)),
-    ColorPair(color: _teal, start: const Endpoint(4, 0), end: const Endpoint(6, 4)),
-    ColorPair(color: _pink, start: const Endpoint(1, 4), end: const Endpoint(5, 0)),
-    ColorPair(color: _maroon, start: const Endpoint(2, 2), end: const Endpoint(4, 6)),
-  ]),
+/// Build a [Level] + its [LevelSolution] from the raw solution paths.
+({Level level, LevelSolution solution}) _make(
+  int id,
+  int gridSize,
+  Map<Color, List<(int, int)>> paths,
+) {
+  final colorPairs = <ColorPair>[];
+  for (final entry in paths.entries) {
+    final p = entry.value;
+    colorPairs.add(ColorPair(
+      color: entry.key,
+      start: Endpoint(p.first.$1, p.first.$2),
+      end: Endpoint(p.last.$1, p.last.$2),
+    ));
+  }
+  return (
+    level: Level(id: id, gridSize: gridSize, colorPairs: colorPairs),
+    solution: paths,
+  );
+}
+
+final _data = <({Level level, LevelSolution solution})>[
+  // ===== LEVEL 1  (5×5, 3 colors, easy) =====
+  _make(1, 5, {
+    _red:   [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3),(1,2)],       // 8
+    _blue:  [(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(3,4),(3,3)],  // 9
+    _green: [(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)],        // 8
+  }),
+
+  // ===== LEVEL 2  (5×5, 3 colors) =====
+  _make(2, 5, {
+    _red:   [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3),(1,2),(1,1),(1,0)], // 10
+    _blue:  [(2,0),(2,1),(2,2),(2,3),(2,4)],                               // 5
+    _green: [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)], // 10
+  }),
+
+  // ===== LEVEL 3  (5×5, 4 colors) =====
+  _make(3, 5, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(1,4),(1,3)],        // 7
+    _blue:   [(1,2),(1,1),(1,0),(2,0),(2,1),(2,2)],              // 6
+    _green:  [(2,3),(2,4),(3,4),(3,3),(3,2),(3,1)],              // 6
+    _orange: [(3,0),(4,0),(4,1),(4,2),(4,3),(4,4)],              // 6
+  }),
+
+  // ===== LEVEL 4  (5×5, 4 colors) =====
+  _make(4, 5, {
+    _red:    [(0,0),(1,0),(2,0),(3,0),(4,0),(4,1),(3,1)],        // 7
+    _blue:   [(2,1),(1,1),(0,1),(0,2),(1,2),(2,2)],              // 6
+    _green:  [(0,3),(0,4),(1,4),(1,3),(2,3),(2,4)],              // 6
+    _orange: [(3,2),(3,3),(3,4),(4,4),(4,3),(4,2)],              // 6
+  }),
+
+  // ===== LEVEL 5  (5×5, 5 colors) =====
+  _make(5, 5, {
+    _red:    [(0,0),(0,1),(1,1),(1,0),(2,0)],                    // 5
+    _blue:   [(0,2),(0,3),(0,4),(1,4),(1,3)],                    // 5
+    _green:  [(1,2),(2,2),(2,1),(3,1),(3,0),(4,0),(4,1)],        // 7
+    _orange: [(2,3),(2,4),(3,4),(3,3),(3,2)],                    // 5
+    _purple: [(4,2),(4,3),(4,4)],                                // 3
+  }),
+
+  // ===== LEVEL 6  (5×5, 5 colors) =====
+  _make(6, 5, {
+    _red:    [(0,0),(1,0),(2,0),(2,1),(1,1),(0,1)],              // 6
+    _blue:   [(0,2),(0,3),(1,3),(1,2),(2,2),(2,3)],              // 6
+    _green:  [(0,4),(1,4),(2,4),(3,4),(3,3)],                    // 5
+    _orange: [(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)],              // 6
+    _purple: [(4,3),(4,4)],                                      // 2
+  }),
+
+  // ===== LEVEL 7  (5×5, 5 colors) =====
+  _make(7, 5, {
+    _red:    [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1)],  // 8
+    _blue:   [(0,3),(0,4),(1,4),(1,3),(2,3),(2,2)],              // 6
+    _green:  [(2,4),(3,4),(3,3),(3,2)],                          // 4
+    _orange: [(3,1),(3,0),(4,0),(4,1)],                          // 4
+    _purple: [(4,2),(4,3),(4,4)],                                // 3
+  }),
+
+  // ===== LEVEL 8  (6×6, 4 colors) =====
+  _make(8, 6, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(1,5),(1,4),(1,3)], // 9
+    _blue:   [(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)], // 9
+    _green:  [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)], // 9
+    _orange: [(4,3),(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)], // 9
+  }),
+
+  // ===== LEVEL 9  (6×6, 5 colors) =====
+  _make(9, 6, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5)],                       // 6
+    _blue:   [(1,5),(1,4),(1,3),(1,2),(1,1),(1,0),(2,0),(2,1)],           // 8
+    _green:  [(2,2),(2,3),(2,4),(2,5),(3,5),(3,4)],                       // 6
+    _orange: [(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],           // 8
+    _purple: [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],           // 8
+  }),
+
+  // ===== LEVEL 10  (6×6, 5 colors) =====
+  _make(10, 6, {
+    _red:    [(0,0),(1,0),(2,0),(2,1),(1,1),(0,1),(0,2),(1,2)],           // 8
+    _blue:   [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3),(2,3),(2,2)],           // 8
+    _green:  [(2,4),(2,5),(3,5),(3,4),(3,3),(3,2)],                       // 6
+    _orange: [(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],                       // 6
+    _purple: [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],           // 8
+  }),
+
+  // ===== LEVEL 11  (6×6, 5 colors) =====
+  _make(11, 6, {
+    _red:    [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(3,2)], // 10
+    _blue:   [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3),(2,3)],                   // 7
+    _green:  [(2,4),(2,5),(3,5),(3,4),(3,3)],                               // 5
+    _orange: [(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],                         // 6
+    _purple: [(4,4),(4,5),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],             // 8
+  }),
+
+  // ===== LEVEL 12  (6×6, 6 colors) =====
+  _make(12, 6, {
+    _red:    [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0)],              // 6
+    _blue:   [(0,3),(0,4),(0,5),(1,5),(1,4),(1,3)],              // 6
+    _green:  [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)],              // 6
+    _orange: [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],              // 6
+    _purple: [(4,0),(4,1),(4,2),(4,3),(4,4),(4,5)],              // 6
+    _yellow: [(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],              // 6
+  }),
+
+  // ===== LEVEL 13  (6×6, 6 colors) =====
+  _make(13, 6, {
+    _red:    [(0,0),(0,1),(1,1),(1,0),(2,0),(2,1)],              // 6
+    _blue:   [(0,2),(0,3),(0,4),(0,5)],                          // 4
+    _green:  [(1,2),(1,3),(1,4),(1,5),(2,5),(2,4),(2,3),(2,2)],  // 8
+    _orange: [(3,0),(3,1),(3,2),(3,3),(3,4),(3,5)],              // 6
+    _purple: [(4,5),(4,4),(4,3),(4,2),(4,1),(4,0),(5,0)],        // 7
+    _yellow: [(5,1),(5,2),(5,3),(5,4),(5,5)],                    // 5
+  }),
+
+  // ===== LEVEL 14  (6×6, 6 colors) =====
+  _make(14, 6, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(1,3),(1,2),(1,1),(1,0)],  // 8
+    _blue:   [(0,4),(0,5),(1,5),(1,4)],                          // 4
+    _green:  [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5)],              // 6
+    _orange: [(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],              // 6
+    _purple: [(4,0),(4,1),(4,2),(5,2),(5,1),(5,0)],              // 6
+    _yellow: [(4,3),(4,4),(4,5),(5,5),(5,4),(5,3)],              // 6
+  }),
+
+  // ===== LEVEL 15  (7×7, 5 colors) =====
+  _make(15, 7, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6),(1,6),(1,5),(1,4)], // 10
+    _blue:   [(1,3),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)], // 11
+    _green:  [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1)],       // 9
+    _orange: [(4,2),(4,3),(4,4),(4,5),(4,6),(5,6),(5,5),(5,4),(5,3),(5,2)], // 10
+    _purple: [(5,1),(5,0),(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],      // 9
+  }),
+
+  // ===== LEVEL 16  (7×7, 6 colors) =====
+  _make(16, 7, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],                           // 7
+    _blue:   [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0),(2,0),(2,1)],               // 9
+    _green:  [(2,2),(2,3),(2,4),(2,5),(2,6),(3,6),(3,5)],                           // 7
+    _orange: [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2),(4,3)],               // 9
+    _purple: [(4,4),(4,5),(4,6),(5,6),(5,5),(5,4),(5,3)],                           // 7
+    _yellow: [(5,2),(5,1),(5,0),(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],         // 10
+  }),
+
+  // ===== LEVEL 17  (7×7, 6 colors) =====
+  _make(17, 7, {
+    _red:    [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0),(2,0),(2,1),(2,2)],               // 9
+    _blue:   [(0,3),(0,4),(1,4),(1,3),(2,3),(2,4)],                                 // 6
+    _green:  [(0,5),(0,6),(1,6),(1,5),(2,5),(2,6),(3,6)],                           // 7
+    _orange: [(3,0),(3,1),(3,2),(3,3),(3,4),(3,5),(4,5),(4,4),(4,3)],               // 9
+    _purple: [(4,6),(5,6),(5,5),(5,4),(5,3),(6,3),(6,4),(6,5),(6,6)],               // 9
+    _yellow: [(4,2),(4,1),(4,0),(5,0),(5,1),(5,2),(6,2),(6,1),(6,0)],               // 9
+  }),
+
+  // ===== LEVEL 18  (7×7, 7 colors) =====
+  _make(18, 7, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],                           // 7
+    _blue:   [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0)],                           // 7
+    _green:  [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)],                           // 7
+    _orange: [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0)],                           // 7
+    _purple: [(4,0),(4,1),(4,2),(4,3),(4,4),(4,5),(4,6)],                           // 7
+    _yellow: [(5,6),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0)],                           // 7
+    _teal:   [(6,0),(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],                           // 7
+  }),
+
+  // ===== LEVEL 19  (7×7, 7 colors) =====
+  _make(19, 7, {
+    _red:    [(0,0),(0,1),(0,2),(1,2),(1,1),(1,0)],                                 // 6
+    _blue:   [(0,3),(0,4),(0,5),(0,6),(1,6),(1,5),(1,4),(1,3)],                     // 8
+    _green:  [(2,0),(2,1),(2,2),(2,3),(2,4),(2,5),(2,6)],                           // 7
+    _orange: [(3,6),(3,5),(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1)],               // 9
+    _purple: [(4,2),(4,3),(4,4),(4,5),(4,6)],                                       // 5
+    _yellow: [(5,6),(5,5),(5,4),(5,3),(5,2),(5,1),(5,0),(6,0),(6,1)],               // 9
+    _teal:   [(6,2),(6,3),(6,4),(6,5),(6,6)],                                       // 5
+  }),
+
+  // ===== LEVEL 20  (7×7, 8 colors) =====
+  _make(20, 7, {
+    _red:    [(0,0),(0,1),(0,2),(0,3),(0,4),(0,5),(0,6)],                           // 7
+    _blue:   [(1,6),(1,5),(1,4),(1,3),(1,2),(1,1),(1,0)],                           // 7
+    _green:  [(2,0),(2,1),(2,2),(2,3)],                                             // 4
+    _orange: [(2,4),(2,5),(2,6),(3,6),(3,5)],                                       // 5
+    _purple: [(3,4),(3,3),(3,2),(3,1),(3,0),(4,0),(4,1),(4,2)],                     // 8
+    _yellow: [(4,3),(4,4),(4,5),(4,6),(5,6),(5,5)],                                 // 6
+    _teal:   [(5,4),(5,3),(5,2),(5,1),(5,0),(6,0)],                                 // 6
+    _pink:   [(6,1),(6,2),(6,3),(6,4),(6,5),(6,6)],                                 // 6
+  }),
 ];
+
+/// All 20 levels.
+final List<Level> allLevels = _data.map((d) => d.level).toList();
+
+/// Solutions keyed by level id.
+final Map<int, LevelSolution> allSolutions = {
+  for (final d in _data) d.level.id: d.solution,
+};
