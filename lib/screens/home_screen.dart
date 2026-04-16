@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/coin_service.dart';
 import 'level_select_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -109,6 +110,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         .fadeIn(delay: 600.ms, duration: 500.ms)
                         .slideY(begin: 0.3, end: 0),
                     const Spacer(),
+                    // Privacy Policy link
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      ),
+                      child: Text(
+                        'Privacy Policy',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.white24,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
